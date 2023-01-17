@@ -102,11 +102,9 @@ clfs = {'MNB': MultinomialNB(),
 # create lists to store scores to build a dataframe later on
 val_accuracy_series = []
 f1score_series = []
-train_accuracy = []
 
 val_accuracy_series_mean = []
 f1score_series_mean = []
-train_accuracy_mean = []
 
 # run the models with classify() function we created above(this takes some times)
 for name, clf in clfs.items():
@@ -137,7 +135,6 @@ for name, clf in clfs.items():
                                                                                     round(i_val_accuracy,2),
                                                                                     round(i_f1score,2)))
         if (x + 1) == t_N_FOLDS:
-            print("called")
             val_accuracy_series_mean.append(np.mean(val_accuracy_series))
             f1score_series_mean.append(np.mean(f1score_series))
             val_accuracy_series = []
