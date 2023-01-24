@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import nltk
 import string
 import spacy
+import seaborn as sns
 nlp = spacy.load('en_core_web_sm')
 
 from sklearn.naive_bayes import MultinomialNB
@@ -51,13 +52,59 @@ def classify(clf, x_train,x_val, y_train, y_val):
 
 train_df = pd.read_csv("train.csv")
 test_df = pd.read_csv("test.csv")
-train_df.drop(columns=['id','keyword','location'],inplace=True)
 
 print(train_df["text"].values[1])
 
 
 print(train_df.shape)
 
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+fig, axes = plt.subplots(ncols=2, figsize=(17, 4), dpi=100)
+plt.tight_layout()
+
+train_df.groupby('target').count()['id'].plot(kind='pie', ax=axes[0], labels=['Brak katastrofy (57%)', 'Katastrofa (43%)'])
+sns.countplot(x=train_df['target'], hue=train_df['target'], ax=axes[1])
+
+axes[0].set_ylabel('')
+axes[1].set_ylabel('')
+axes[1].set_xticklabels(['Brak Katastrofy (4342)', 'Katastrofa (3271)'])
+axes[0].tick_params(axis='x', labelsize=15)
+axes[0].tick_params(axis='y', labelsize=15)
+axes[1].tick_params(axis='x', labelsize=15)
+axes[1].tick_params(axis='y', labelsize=15)
+
+axes[0].set_title('Target Distribution in Training Set', fontsize=13)
+axes[1].set_title('Rozkład danych w zbiorze treningowym', fontsize=13)
+
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+missing_cols = ['keyword', 'location']
+
+fig, axes = plt.subplots(ncols=2, figsize=(17, 4), dpi=100)
+
+sns.barplot(x=train_df[missing_cols].isnull().sum().index, y=train_df[missing_cols].isnull().sum().values, ax=axes[0])
+sns.barplot(x=test_df[missing_cols].isnull().sum().index, y=test_df[missing_cols].isnull().sum().values, ax=axes[1])
+
+axes[0].set_ylabel('Liczba tweetów z brakiem wartości', size=15, labelpad=20)
+axes[0].tick_params(axis='x', labelsize=15)
+axes[0].tick_params(axis='y', labelsize=15)
+axes[1].tick_params(axis='x', labelsize=15)
+axes[1].tick_params(axis='y', labelsize=15)
+
+axes[0].set_title('Zbiór treningowy', fontsize=13)
+axes[1].set_title('Zbiór testowy', fontsize=13)
+
+plt.show()
+
+for df in [train_df, test_df]:
+    for col in ['keyword', 'location']:
+        df[col] = df[col].fillna(f'no_{col}')
+
+
+
+train_df.drop(columns=['id','keyword','location'],inplace=True)
 
 #Wizualizacja różnic różnic w cechach
 #--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -149,7 +196,7 @@ test_df['liczba_url'] = test_df['text'].apply(lambda x: len([w for w in str(x).l
 
 # store the features and their names in variables
 features = ['liczba_zdań', 'liczba_słów', 'liczba_znakow', 'liczba_hashy', 'liczba_wzmianek', 'liczba_słów_pisanych_duzymi_literami', 
-            'średnia_długość_słowa', 'liczba_rzeczowników', 'liczba_url']
+            'średnia_długość_słowa', 'liczba_rzeczowników', 'liczba_url', 'procent_interpunkcyjnych']
             
 
 # create the figure
