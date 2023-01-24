@@ -254,10 +254,12 @@ count_vectorizer = feature_extraction.text.CountVectorizer()
 X=train_df['text_cleaned']
 y=train_df['target']
 
-X_train,X_test,y_train,y_test=train_test_split(X, y, test_size=0.1, random_state=random_state)
+#X_train,X_test,y_train,y_test=train_test_split(X, y, test_size=0.1, random_state=random_state)
 
-X_train=count_vectorizer.fit_transform(X_train).toarray()
-X_test=count_vectorizer.transform(X_test)
+t_N_FOLDS = 6
+t_X_folds = np.array_split(X, t_N_FOLDS)
+t_y_folds = np.array_split(y, t_N_FOLDS)
+
 
 # create a dictionary containing the names and code of algorithms
 clfs = {'MNB': MultinomialNB(),
@@ -273,24 +275,47 @@ clfs = {'MNB': MultinomialNB(),
 val_accuracy_series = []
 f1score_series = []
 
+val_accuracy_series_mean = []
+f1score_series_mean = []
+
 # run the models with classify() function we created above(this takes some times)
 for name, clf in clfs.items():
-    i_train_accuracy, i_val_accuracy, i_f1score = classify(clf, X_train, X_test, y_train, y_test)
-    
-    # append the scores to the lists
-    val_accuracy_series.append(i_val_accuracy)
-    f1score_series.append(i_f1score)
-    
-    # print out the scores
-    print('For [{}]-\nTrain accuracy : {} | Val accuracy : {} | F1 Score : {}\n'.format(name,
-                                                                                  round(i_train_accuracy,2),
-                                                                                  round(i_val_accuracy,2),
-                                                                                  round(i_f1score,2)))
+    print('For [{}]-\n'.format(name))
+    for x in range(t_N_FOLDS):
+        t_X_train = t_X_folds.copy()
+        t_X_train.pop(x)
+        t_X_train = np.concatenate(t_X_train)
+        t_y_train = t_y_folds.copy()
+        t_y_train.pop(x)
+        t_y_train = np.concatenate(t_y_train)
+
+        t_X_test = t_X_folds[x]
+        t_y_test = t_y_folds[x]
+
+        X_train=count_vectorizer.fit_transform(t_X_train).toarray()
+        X_test=count_vectorizer.transform(t_X_test)
+
+        i_train_accuracy, i_val_accuracy, i_f1score = classify(clf, X_train, X_test, t_y_train, t_y_test)
+
+        # append the scores of each fold
+        val_accuracy_series.append(i_val_accuracy)
+        f1score_series.append(i_f1score)
+        
+        # print out the scores
+        print('Fold : {} | Train accuracy : {} | Val accuracy : {} | F1 Score : {}\n'.format(x+1,
+                                                                                    round(i_train_accuracy,2),
+                                                                                    round(i_val_accuracy,2),
+                                                                                    round(i_f1score,2)))
+        if (x + 1) == t_N_FOLDS:
+            val_accuracy_series_mean.append(np.mean(val_accuracy_series))
+            f1score_series_mean.append(np.mean(f1score_series))
+            val_accuracy_series = []
+            f1score_series = []
 
 # create a dataframe with the scores
 performance_df = pd.DataFrame({'Algorithm': clfs.keys(),
-                         'Accuracy': val_accuracy_series,
-                         'F1score': f1score_series}).round(2).sort_values('F1score', ascending=False)
+                         'Accuracy': val_accuracy_series_mean,
+                         'F1score': f1score_series_mean}).round(2).sort_values('F1score', ascending=False)
 
 print(performance_df)
 
